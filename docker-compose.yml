@@ -1,0 +1,12 @@
+services:
+  backend:
+    build: .
+    container_name: electricity-backend
+    ports:
+      - "3000:3000"
+    networks:
+      - electricity-network
+
+networks:
+  electricity-network:
+    driver: bridge
