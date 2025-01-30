@@ -8,6 +8,9 @@ RUN npm install
 
 COPY . .
 
+COPY prisma ./prisma
+RUN npx prisma generate
+
 CMD ["npx", "ts-node", "src/server.ts"]
 
 EXPOSE 3000
