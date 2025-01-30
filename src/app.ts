@@ -12,4 +12,8 @@ app.use("/api/stats", statsRoutes);
 app.use("/api/price", priceRoutes);
 app.use("/api/consumption-vs-production", consumptionRoutes);
 
-export default app;
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

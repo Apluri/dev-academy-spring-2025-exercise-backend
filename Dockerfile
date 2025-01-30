@@ -11,6 +11,6 @@ COPY . .
 COPY prisma ./prisma
 RUN npx prisma generate
 
-CMD ["npx", "ts-node", "src/server.ts"]
+CMD ["npx", "ts-node", "src/app.ts"]
 
 EXPOSE 3000
