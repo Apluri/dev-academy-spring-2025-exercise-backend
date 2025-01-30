@@ -4,9 +4,38 @@ services:
     container_name: electricity-backend
     ports:
       - "3000:3000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
     networks:
-      - electricity-network
+      - mynetwork
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: academy
+      POSTGRES_PASSWORD: academy
+      POSTGRES_DB: electricity
+    build:
+      context: .
+      dockerfile: Dockerfile.db
+    ports:
+      - "5432:5432"
+    networks:
+      - mynetwork
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8088:8080
+    networks:
+      - mynetwork
 
 networks:
-  electricity-network:
+  mynetwork:
     driver: bridge
