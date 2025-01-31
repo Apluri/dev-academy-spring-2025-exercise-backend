@@ -6,6 +6,7 @@ export const internalServerErrorHandler = (
   res: Response,
   next: NextFunction
 ) => {
+  // TODO logging?
   console.error(err.stack);
   res.status(500).json({ error: "Internal Server Error" });
 };
