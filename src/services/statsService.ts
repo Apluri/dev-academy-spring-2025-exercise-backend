@@ -1,8 +1,8 @@
-import { PrismaClient } from "@prisma/client";
+import { electricitydata, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export const getDailyStatsService = async () => {
+export const getDailyStatsService = async (): Promise<electricitydata[]> => {
   return await prisma.electricitydata.findMany();
 };
 

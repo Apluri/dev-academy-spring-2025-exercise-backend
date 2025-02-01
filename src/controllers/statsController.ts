@@ -3,6 +3,8 @@ import {
   getDailyStatsService,
   getStatsByDateService,
 } from "../services/statsService";
+import { electricitydata } from "@prisma/client";
+import { ElectricityDataDTO } from "../models/dataTransferObjects";
 
 export const getDailyStats = async (
   req: Request,
@@ -10,8 +12,18 @@ export const getDailyStats = async (
   next: NextFunction
 ) => {
   try {
-    const stats = await getDailyStatsService();
-    res.json(stats);
+    const stats: electricitydata[] = await getDailyStatsService();
+    const response: ElectricityDataDTO = {
+      data: stats,
+      // TODO - implement pagination
+      meta: {
+        page: 0,
+        perPage: 0,
+        totalPages: 0,
+        totalRowCount: 100,
+      },
+    };
+    res.json(response);
   } catch (e) {
     next(e);
   }
