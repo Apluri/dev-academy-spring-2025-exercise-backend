@@ -15,18 +15,22 @@ export type Sorting = {
   id: keyof electricitydata;
   desc: boolean;
 };
+export type FlatSorting = {
+  [key in keyof electricitydata]?: "asc" | "desc";
+};
 
 export type QueryParams = {
-  start: number;
-  size: number;
+  pageStart: number;
+  pageSize: number;
   filters: FlatFilter;
   globalFilter: string;
-  sorting: Sorting[];
+  sorting: FlatSorting[];
 };
 
 // TODO check if some libraries can be used to parse params automatically
 const handleParseFilters = (filters: string) => {
   const flatFilters: FlatFilter = {};
+  if (filters === undefined) return flatFilters;
   JSON.parse(filters).forEach(
     (filter: { id: keyof electricitydata; value: (string | null)[] }) => {
       const key = filter.id;
@@ -38,6 +42,21 @@ const handleParseFilters = (filters: string) => {
   return flatFilters;
 };
 
+// TODO can this be done in a better way?
+const handleParseSorting = (sorting: string) => {
+  const flatSorting: FlatSorting[] = [];
+  if (sorting === undefined) return flatSorting;
+
+  JSON.parse(sorting).forEach(
+    (sort: { id: keyof electricitydata; desc: boolean }) => {
+      flatSorting.push({
+        [sort.id]: sort.desc ? "desc" : "asc",
+      });
+    }
+  );
+  return flatSorting;
+};
+
 export const getRawDataTemp = async (
   req: Request,
   res: Response,
@@ -45,22 +64,18 @@ export const getRawDataTemp = async (
 ) => {
   try {
     const queryParams = {
-      start: parseInt(req.query.start as string),
-      size: parseInt(req.query.size as string),
+      pageStart: parseInt(req.query.pageStart as string),
+      pageSize: parseInt(req.query.pageSize as string),
       filters: handleParseFilters(req.query.filters as string),
       globalFilter: req.query.globalFilter as string,
-      sorting: JSON.parse(req.query.sorting as string) as Sorting[],
+      sorting: handleParseSorting(req.query.sorting as string),
     };
 
-    const stats: electricitydata[] = await getRawData(queryParams);
+    const { data, totalRowCount } = await getRawData(queryParams);
     const response: ElectricityDataDTO = {
-      data: stats,
-      // TODO - implement pagination
+      data: data,
       meta: {
-        page: 0,
-        perPage: 0,
-        totalPages: 0,
-        totalRowCount: 100,
+        totalRowCount,
       },
     };
     res.json(response);

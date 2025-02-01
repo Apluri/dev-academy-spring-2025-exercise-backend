@@ -1,6 +1,5 @@
 export type MetaData = {
-  page: number;
-  perPage: number;
-  totalPages: number;
+  pageStart?: number;
+  pageSize?: number;
   totalRowCount: number;
 };

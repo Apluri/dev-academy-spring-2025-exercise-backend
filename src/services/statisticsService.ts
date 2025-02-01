@@ -1,5 +1,9 @@
 import { electricitydata, Prisma, PrismaClient } from "@prisma/client";
-import { FlatFilter, QueryParams } from "../controllers/statisticsController";
+import {
+  FlatFilter,
+  FlatSorting,
+  QueryParams,
+} from "../controllers/statisticsController";
 
 const prisma = new PrismaClient();
 
@@ -66,12 +70,25 @@ const buildWhereClause = (
 
   return whereClause;
 };
+
 export const getRawData = async (
   queryParams: QueryParams
-): Promise<electricitydata[]> => {
-  return await prisma.electricitydata.findMany({
-    where: buildWhereClause(queryParams.filters),
-  });
+): Promise<{ data: electricitydata[]; totalRowCount: number }> => {
+  const whereClause = buildWhereClause(queryParams.filters);
+
+  const [data, totalRowCount] = await Promise.all([
+    prisma.electricitydata.findMany({
+      skip: queryParams.pageStart,
+      take: queryParams.pageSize,
+      where: whereClause,
+      orderBy: queryParams.sorting,
+    }),
+    prisma.electricitydata.count({
+      where: whereClause,
+    }),
+  ]);
+
+  return { data, totalRowCount: totalRowCount };
 };
 
 export async function getTest() {
