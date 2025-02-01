@@ -2,12 +2,13 @@ import { NextFunction, Request, Response } from "express";
 import {
   getDailyStatsService,
   getStatsByDateService,
+  getTest,
 } from "../services/statsService";
 import { electricitydata } from "@prisma/client";
 import { ElectricityDataDTO } from "../models/dataTransferObjects";
 
 export type FlatFilter = {
-  [key in keyof electricitydata]: (string | null)[];
+  [key in keyof electricitydata]?: (string | null)[];
 };
 
 export type Sorting = {
@@ -36,17 +37,19 @@ const exampleQuery = {
  * convert id:s to key of electricitydata
  */
 const handleParseFilters = (filters: string) => {
-  if (!filters) {
-    return {} as FlatFilter;
-  }
-  const parsedFilters: FlatFilter = JSON.parse(filters).reduce(
-    (acc: FlatFilter, filter: { id: string; value: (string | null)[] }) => {
-      acc[filter.id as keyof electricitydata] = filter.value;
-      return acc;
+  const flatFilters: FlatFilter = {};
+  JSON.parse(filters).forEach(
+    (filter: { id: keyof electricitydata; value: (string | null)[] }) => {
+      console.log("filter", filter);
+      const key = filter.id;
+      const value = filter.value;
+      flatFilters[key] = value;
     }
   );
 
-  return parsedFilters;
+  console.log("parsedFilters", flatFilters);
+
+  return flatFilters;
 };
 
 export const getDailyStats = async (
@@ -78,6 +81,11 @@ export const getDailyStats = async (
   } catch (e) {
     next(e);
   }
+};
+
+export const test = async (req: Request, res: Response) => {
+  const result = await getTest();
+  res.json(result);
 };
 
 export const getStatsByDate = async (req: Request, res: Response) => {
