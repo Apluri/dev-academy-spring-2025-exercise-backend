@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import {
-  getDailyStatsService,
-  getStatsByDateService,
+  getRawData,
+  getStatisticsByDate,
   getTest,
-} from "../services/statsService";
+} from "../services/statisticsService";
 import { electricitydata } from "@prisma/client";
 import { ElectricityDataDTO } from "../models/dataTransferObjects";
 
@@ -24,35 +24,21 @@ export type QueryParams = {
   sorting: Sorting[];
 };
 
-const exampleQuery = {
-  start: "0",
-  size: "10",
-  filters:
-    '[{"id":"id","value":[null,"12"]},{"id":"date","value":["2025-02-18T22:00:00.000Z",null]},{"id":"starttime","value":["2025-02-01T02:00:00.000Z","2025-02-01T01:00:00.000Z"]},{"id":"productionamount","value":["1","9"]},{"id":"consumptionamount","value":["1",null]},{"id":"hourlyprice","value":[null,null]}]',
-  globalFilter: "",
-  sorting: "[]",
-};
-
-/**
- * convert id:s to key of electricitydata
- */
+// TODO check if some libraries can be used to parse params automatically
 const handleParseFilters = (filters: string) => {
   const flatFilters: FlatFilter = {};
   JSON.parse(filters).forEach(
     (filter: { id: keyof electricitydata; value: (string | null)[] }) => {
-      console.log("filter", filter);
       const key = filter.id;
       const value = filter.value;
       flatFilters[key] = value;
     }
   );
 
-  console.log("parsedFilters", flatFilters);
-
   return flatFilters;
 };
 
-export const getDailyStats = async (
+export const getRawDataTemp = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -66,7 +52,7 @@ export const getDailyStats = async (
       sorting: JSON.parse(req.query.sorting as string) as Sorting[],
     };
 
-    const stats: electricitydata[] = await getDailyStatsService(queryParams);
+    const stats: electricitydata[] = await getRawData(queryParams);
     const response: ElectricityDataDTO = {
       data: stats,
       // TODO - implement pagination
@@ -83,13 +69,22 @@ export const getDailyStats = async (
   }
 };
 
+export const getDailyStatistics = async (req: Request, res: Response) => {
+  const stats = await getTest();
+  res.json(stats);
+};
+
+export const getDailyStatisticsByDate = async (req: Request, res: Response) => {
+  // TODO implement this function to get daily statistics but only for a specific date
+  // return object should match getDailyStatistics
+  throw new Error("Not implemented");
+  const { date } = req.params;
+  const stats = await getStatisticsByDate(date);
+  res.json(stats);
+};
+
+// TODO  - remove this route
 export const test = async (req: Request, res: Response) => {
   const result = await getTest();
   res.json(result);
-};
-
-export const getStatsByDate = async (req: Request, res: Response) => {
-  const { date } = req.params;
-  const stats = await getStatsByDateService(date);
-  res.json(stats);
 };

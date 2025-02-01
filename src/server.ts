@@ -1,7 +1,5 @@
 import express from "express";
-import statsRoutes from "./routes/statsRoutes";
-import priceRoutes from "./routes/priceRoutes";
-import consumptionRoutes from "./routes/consumptionRoutes";
+import statisticsRoute from "./routes/statisticsRoute";
 import "./utils/prototypeUtils";
 import { internalServerErrorHandler } from "./middlewares/errorHandler";
 const cors = require("cors");
@@ -18,9 +16,7 @@ app.use(
   })
 );
 
-app.use("/api/stats", statsRoutes);
-app.use("/api/price", priceRoutes);
-app.use("/api/consumption-vs-production", consumptionRoutes);
+app.use("/api/statistics", statisticsRoute);
 
 app.use(internalServerErrorHandler);
 

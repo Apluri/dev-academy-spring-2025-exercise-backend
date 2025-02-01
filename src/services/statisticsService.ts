@@ -1,12 +1,11 @@
 import { electricitydata, Prisma, PrismaClient } from "@prisma/client";
-import { FlatFilter, QueryParams } from "../controllers/statsController";
+import { FlatFilter, QueryParams } from "../controllers/statisticsController";
 
 const prisma = new PrismaClient();
 
-export const buildWhereClause = (
+const buildWhereClause = (
   filters: FlatFilter
 ): Prisma.electricitydataWhereInput => {
-  console.log("params", filters);
   // TODO UTC handling
 
   const whereClause: Prisma.electricitydataWhereInput = {
@@ -65,10 +64,9 @@ export const buildWhereClause = (
       : undefined,
   };
 
-  console.log("whereclause", whereClause);
   return whereClause;
 };
-export const getDailyStatsService = async (
+export const getRawData = async (
   queryParams: QueryParams
 ): Promise<electricitydata[]> => {
   return await prisma.electricitydata.findMany({
@@ -82,10 +80,23 @@ export async function getTest() {
     WHERE NOT productionamount < 7554
   `;
 
-  console.log(result);
   return result;
 }
-export const getStatsByDateService = async (date: string) => {
+
+export const getDailyStatistics = async () => {
+  // get data
+  // do calucations
+  // Total electricity consumption per day
+  // Total electricity production per day
+  // Average electricity price per day
+  // Longest consecutive time in hours, when electricity price has been negative, per day
+  // return data
+
+  // data should be in format that there is a way that dates are unique, and then we have the values for that date.
+  return await prisma.electricitydata.findMany();
+};
+
+export const getStatisticsByDate = async (date: string) => {
   return await prisma.electricitydata.findMany({
     where: { date },
   });
