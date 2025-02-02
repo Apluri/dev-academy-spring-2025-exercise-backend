@@ -2,8 +2,9 @@ import { electricitydata, Prisma, PrismaClient } from "@prisma/client";
 import { FlatFilter, QueryParams } from "../controllers/statisticsController";
 import { DailyElectricityData } from "../models/dataTransferObjects";
 
-const prisma = new PrismaClient();
 const FILTER_ARRAY_LENGTH = 2;
+
+export const prisma = new PrismaClient();
 
 const buildWhereClause = (
   filters: FlatFilter<electricitydata>
@@ -89,10 +90,11 @@ export const getRawData = async (
 };
 
 // TODO Check that calculations are correct
-export const getDailyStatistics = async (
+export const getDailyStatistics2 = async (
   queryParams: QueryParams<DailyElectricityData>
 ) => {
   const allData = await prisma.electricitydata.findMany();
+
   const dataMap = new Map<
     string,
     {
@@ -143,7 +145,7 @@ export const getDailyStatistics = async (
     }
   });
 
-  const filteredData = Array.from(dataMap.entries())
+  const filteredData: DailyElectricityData[] = Array.from(dataMap.entries())
     .map(([date, stats]) => ({
       date: new Date(date),
       totalConsumption: stats.totalConsumption,
@@ -174,6 +176,7 @@ export const getDailyStatistics = async (
       });
     });
 
+  /*
   // Use the sorting parameter to sort the data
   if (queryParams.sorting.length > 0) {
     filteredData.sort((a, b) => {
@@ -190,6 +193,7 @@ export const getDailyStatistics = async (
       return 0;
     });
   }
+    */
 
   const totalRowCount = filteredData.length;
 
@@ -199,6 +203,79 @@ export const getDailyStatistics = async (
   );
 
   return { paginatedData, totalRowCount };
+};
+
+export const getDailyStatisticsTemp = async (
+  queryParams: QueryParams<DailyElectricityData>
+) => {
+  console.log("pagi", queryParams.pageSize, queryParams.pageStart);
+  const results = await prisma.$transaction([
+    prisma.electricitydata.groupBy({
+      by: ["date"], // Group by date
+      _sum: {
+        productionamount: true,
+        consumptionamount: true,
+      },
+      _avg: {
+        hourlyprice: true,
+      },
+      // TODO change sort object to match new sorting type
+      orderBy: {
+        date: "asc",
+      },
+      skip: queryParams.pageStart, // TODO ADD PAGI
+      take: queryParams.pageSize,
+    }),
+    prisma.electricitydata.findMany({
+      where: {
+        date: {
+          not: null,
+        },
+      },
+      distinct: ["date"],
+    }),
+  ]);
+  const aggregatedData = results[0];
+  // Step 2: Fetch hourly prices separately to calculate the longest negative period
+  const dates = aggregatedData.map((d) => d.date).filter((d) => d !== null);
+  const hourlyData = await prisma.electricitydata.findMany({
+    where: { date: { in: dates } },
+    orderBy: [{ date: "asc" }, { starttime: "asc" }],
+  });
+
+  // Step 3: Calculate longest negative streak per day
+  const longestNegativeStreaks = new Map<string, number>();
+
+  for (const date of dates) {
+    const prices = hourlyData
+      .filter((d) => d.date?.toDateString() === date.toDateString())
+      .map((d) => Number(d.hourlyprice));
+    let maxStreak = 0;
+    let currentStreak = 0;
+
+    for (const price of prices) {
+      if (price < 0) {
+        currentStreak++;
+        maxStreak = Math.max(maxStreak, currentStreak);
+      } else {
+        currentStreak = 0;
+      }
+    }
+
+    longestNegativeStreaks.set(date.toDateString(), maxStreak);
+  }
+
+  const result: DailyElectricityData[] = aggregatedData.map((d) => ({
+    date: d.date,
+    totalProduction: Number(d._sum?.productionamount),
+    totalConsumption: Number(d._sum?.consumptionamount),
+    averagePrice: Number(d._avg?.hourlyprice),
+    longestNegativePriceStreak: d.date
+      ? longestNegativeStreaks.get(d.date?.toDateString()) ?? 0
+      : 0,
+  }));
+
+  return { result, totalRowCount: results[1].length };
 };
 
 export const getStatisticsByDate = async (date: string) => {

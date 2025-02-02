@@ -13,7 +13,7 @@ export type DailyElectricityDataDTO = {
 
 // TODO not dto should be in a separate file
 export type DailyElectricityData = {
-  date: Date;
+  date: Date | null;
   totalConsumption: number;
   totalProduction: number;
   averagePrice: number;
