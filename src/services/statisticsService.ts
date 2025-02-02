@@ -100,7 +100,6 @@ export const getDailyStatistics = async (
   queryParams: QueryParams<DailyElectricityData>
 ) => {
   const allData = await prisma.electricitydata.findMany();
-
   const dataMap = new Map<
     string,
     {
@@ -161,8 +160,23 @@ export const getDailyStatistics = async (
     })
   );
 
-  // TODO use the sorting parameter to sort the data
-  data.sort((a, b) => a.date.getTime() - b.date.getTime());
+  // Use the sorting parameter to sort the data
+  if (queryParams.sorting.length > 0) {
+    data.sort((a, b) => {
+      for (const sortObj of queryParams.sorting) {
+        const sortField = Object.keys(sortObj)[0] as keyof DailyElectricityData;
+        const order = sortObj[sortField];
+
+        const fieldA = a[sortField];
+        const fieldB = b[sortField];
+
+        if (fieldA < fieldB) return order === "asc" ? -1 : 1;
+        if (fieldA > fieldB) return order === "asc" ? 1 : -1;
+      }
+      return 0;
+    });
+  }
+
   const totalRowCount = data.length;
 
   const paginatedData = data.slice(

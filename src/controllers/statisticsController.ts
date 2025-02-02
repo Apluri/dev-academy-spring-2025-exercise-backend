@@ -7,6 +7,7 @@ import {
 } from "../services/statisticsService";
 import { electricitydata } from "@prisma/client";
 import {
+  DailyElectricityData,
   DailyElectricityDataDTO,
   ElectricityDataDTO,
 } from "../models/dataTransferObjects";
@@ -68,7 +69,7 @@ export const getRawDataTemp = async (
       pageStart: parseInt(req.query.pageStart as string),
       pageSize: parseInt(req.query.pageSize as string),
       filters: handleParseFilters<electricitydata>(req.query.filters as string),
-      sorting: handleParseSorting(req.query.sorting as string),
+      sorting: handleParseSorting<electricitydata>(req.query.sorting as string),
     };
 
     const { data, totalRowCount } = await getRawData(queryParams);
@@ -88,8 +89,12 @@ export const handleGetDailyStatistics = async (req: Request, res: Response) => {
   const queryParams = {
     pageStart: parseInt(req.query.pageStart as string),
     pageSize: parseInt(req.query.pageSize as string),
-    filters: handleParseFilters(req.query.filters as string),
-    sorting: handleParseSorting(req.query.sorting as string),
+    filters: handleParseFilters<DailyElectricityData>(
+      req.query.filters as string
+    ),
+    sorting: handleParseSorting<DailyElectricityData>(
+      req.query.sorting as string
+    ),
   };
   const { paginatedData: data, totalRowCount } = await getDailyStatistics(
     queryParams
