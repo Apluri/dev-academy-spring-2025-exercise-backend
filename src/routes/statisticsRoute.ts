@@ -1,14 +1,12 @@
 import { Router } from "express";
 import {
-  getDailyStatistics,
   getRawDataTemp,
-  test,
+  handleGetDailyStatistics,
 } from "../controllers/statisticsController";
 
 const router = Router();
 
 router.get("/raw", getRawDataTemp); // TODO: remove this route
-router.get("/daily", getDailyStatistics);
-router.get("/daily/:date", test);
+router.get("/daily", handleGetDailyStatistics);
 
 export default router;

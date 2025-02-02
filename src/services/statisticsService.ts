@@ -1,10 +1,18 @@
-import { electricitydata, Prisma, PrismaClient } from "@prisma/client";
-import { FlatFilter, QueryParams } from "../controllers/statisticsController";
+import {
+  dailyElectricityStatistics,
+  electricitydata,
+  Prisma,
+  PrismaClient,
+} from "@prisma/client";
+import { QueryFilter, QueryParams } from "../types/dataQueries";
 
-const prisma = new PrismaClient();
+const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGE_START = 0;
+export const prisma = new PrismaClient();
 
+// TODO remove
 const buildWhereClause = (
-  filters: FlatFilter
+  filters?: QueryFilter<electricitydata>
 ): Prisma.electricitydataWhereInput => {
   // TODO UTC handling
 
@@ -67,8 +75,9 @@ const buildWhereClause = (
   return whereClause;
 };
 
+// TODO remove
 export const getRawData = async (
-  queryParams: QueryParams
+  queryParams: QueryParams<electricitydata>
 ): Promise<{ data: electricitydata[]; totalRowCount: number }> => {
   const whereClause = buildWhereClause(queryParams.filters);
   const [data, totalRowCount] = await Promise.all([
@@ -86,30 +95,70 @@ export const getRawData = async (
   return { data, totalRowCount: totalRowCount };
 };
 
-export async function getTest() {
-  const result = await prisma.$queryRaw`
-    SELECT * FROM electricitydata
-    WHERE NOT productionamount < 7554
-  `;
+const createWhereClause = (
+  filters?: QueryFilter<dailyElectricityStatistics>
+) => {
+  const whereClause: Prisma.dailyElectricityStatisticsWhereInput = {};
 
-  return result;
-}
+  if (filters?.totalConsumption) {
+    const [min, max] = filters.totalConsumption;
+    whereClause.totalConsumption = {
+      gte: min ? parseFloat(min) : undefined,
+      lte: max ? parseFloat(max) : undefined,
+    };
+  }
 
-export const getDailyStatistics = async () => {
-  // get data
-  // do calucations
-  // Total electricity consumption per day
-  // Total electricity production per day
-  // Average electricity price per day
-  // Longest consecutive time in hours, when electricity price has been negative, per day
-  // return data
+  if (filters?.totalProduction) {
+    const [min, max] = filters.totalProduction;
+    whereClause.totalProduction = {
+      gte: min ? parseFloat(min) : undefined,
+      lte: max ? parseFloat(max) : undefined,
+    };
+  }
 
-  // data should be in format that there is a way that dates are unique, and then we have the values for that date.
-  return await prisma.electricitydata.findMany();
+  if (filters?.averagePrice) {
+    const [min, max] = filters.averagePrice;
+    whereClause.averagePrice = {
+      gte: min ? parseFloat(min) : undefined,
+      lte: max ? parseFloat(max) : undefined,
+    };
+  }
+
+  if (filters?.date) {
+    const [min, max] = filters.date;
+    whereClause.date = {
+      gte: min ? new Date(min) : undefined,
+      lte: max ? new Date(max) : undefined,
+    };
+  }
+
+  if (filters?.longestNegativePriceStreak) {
+    const [min, max] = filters.longestNegativePriceStreak;
+    whereClause.longestNegativePriceStreak = {
+      gte: min ? parseInt(min) : undefined,
+      lte: max ? parseInt(max) : undefined,
+    };
+  }
+
+  return whereClause;
 };
 
-export const getStatisticsByDate = async (date: string) => {
-  return await prisma.electricitydata.findMany({
-    where: { date },
-  });
+export const getDailyStatisticsView = async (
+  queryParams: QueryParams<dailyElectricityStatistics>
+) => {
+  console.log(queryParams.pageSize, queryParams.pageStart);
+  const [data, totalRowCount] = await Promise.all([
+    await prisma.dailyElectricityStatistics.findMany({
+      skip: queryParams.pageStart || DEFAULT_PAGE_START,
+      take: queryParams.pageSize || DEFAULT_PAGE_SIZE,
+      orderBy: queryParams.sorting,
+      where: createWhereClause(queryParams.filters),
+    }),
+
+    prisma.dailyElectricityStatistics.count({
+      where: createWhereClause(queryParams.filters),
+    }),
+  ]);
+
+  return { data, totalRowCount };
 };

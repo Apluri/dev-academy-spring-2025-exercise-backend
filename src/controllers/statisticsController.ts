@@ -1,59 +1,39 @@
 import { NextFunction, Request, Response } from "express";
 import {
+  getDailyStatisticsView as getDailyStatistics,
   getRawData,
-  getStatisticsByDate,
-  getTest,
 } from "../services/statisticsService";
-import { electricitydata } from "@prisma/client";
-import { ElectricityDataDTO } from "../models/dataTransferObjects";
+import { dailyElectricityStatistics, electricitydata } from "@prisma/client";
+import {
+  DailyElectricityData,
+  ElectricityData,
+} from "../types/electricityData";
+import { QueryFilter, SortCriteria } from "../types/dataQueries";
 
-export type FlatFilter = {
-  [key in keyof electricitydata]?: (string | null)[];
-};
-
-export type Sorting = {
-  id: keyof electricitydata;
-  desc: boolean;
-};
-export type FlatSorting = {
-  [key in keyof electricitydata]?: "asc" | "desc";
-};
-
-export type QueryParams = {
-  pageStart: number;
-  pageSize: number;
-  filters: FlatFilter;
-  sorting: FlatSorting[];
-};
-
-// TODO check if some libraries can be used to parse params automatically
-const handleParseFilters = (filters: string) => {
-  const flatFilters: FlatFilter = {};
-  if (filters === undefined) return flatFilters;
+const parseFilters = <T>(filters: string) => {
+  const queryFilters: QueryFilter<T> = {};
+  if (filters === undefined) return queryFilters;
   JSON.parse(filters).forEach(
-    (filter: { id: keyof electricitydata; value: (string | null)[] }) => {
+    (filter: { id: keyof T; value: (string | null)[] }) => {
       const key = filter.id;
       const value = filter.value;
-      flatFilters[key] = value;
+      queryFilters[key] = value;
     }
   );
 
-  return flatFilters;
+  return queryFilters;
 };
 
-// TODO can this be done in a better way?
-const handleParseSorting = (sorting: string) => {
-  const flatSorting: FlatSorting[] = [];
-  if (sorting === undefined) return flatSorting;
+const parseSorting = <T>(sorting: string) => {
+  const sortCriterias: SortCriteria<T>[] = [];
+  if (sorting === undefined) return sortCriterias;
 
-  JSON.parse(sorting).forEach(
-    (sort: { id: keyof electricitydata; desc: boolean }) => {
-      flatSorting.push({
-        [sort.id]: sort.desc ? "desc" : "asc",
-      });
-    }
-  );
-  return flatSorting;
+  JSON.parse(sorting).forEach((sort: { id: keyof T; desc: boolean }) => {
+    sortCriterias.push({
+      [sort.id]: sort.desc ? "desc" : "asc",
+    } as SortCriteria<T>);
+  });
+  return sortCriterias;
 };
 
 export const getRawDataTemp = async (
@@ -65,12 +45,12 @@ export const getRawDataTemp = async (
     const queryParams = {
       pageStart: parseInt(req.query.pageStart as string),
       pageSize: parseInt(req.query.pageSize as string),
-      filters: handleParseFilters(req.query.filters as string),
-      sorting: handleParseSorting(req.query.sorting as string),
+      filters: parseFilters<electricitydata>(req.query.filters as string),
+      sorting: parseSorting<electricitydata>(req.query.sorting as string),
     };
 
     const { data, totalRowCount } = await getRawData(queryParams);
-    const response: ElectricityDataDTO = {
+    const response: ElectricityData = {
       data: data,
       meta: {
         totalRowCount,
@@ -82,22 +62,28 @@ export const getRawDataTemp = async (
   }
 };
 
-export const getDailyStatistics = async (req: Request, res: Response) => {
-  const stats = await getTest();
-  res.json(stats);
+const parsedQueryParams = <T>(req: Request) => {
+  const { pageSize, pageStart, filters, sorting } = req.query;
+  return {
+    pageStart: pageStart ? parseInt(pageStart as string) : undefined,
+    pageSize: pageSize ? parseInt(pageSize as string) : undefined,
+    filters: filters ? parseFilters<T>(filters as string) : undefined,
+    sorting: sorting ? parseSorting<T>(sorting as string) : undefined,
+  };
 };
 
-export const getDailyStatisticsByDate = async (req: Request, res: Response) => {
-  // TODO implement this function to get daily statistics but only for a specific date
-  // return object should match getDailyStatistics
-  throw new Error("Not implemented");
-  const { date } = req.params;
-  const stats = await getStatisticsByDate(date);
-  res.json(stats);
-};
-
-// TODO  - remove this route
-export const test = async (req: Request, res: Response) => {
-  const result = await getTest();
-  res.json(result);
+export const handleGetDailyStatistics = async (req: Request, res: Response) => {
+  try {
+    const queryParams = parsedQueryParams<dailyElectricityStatistics>(req);
+    const { data, totalRowCount } = await getDailyStatistics(queryParams);
+    const response: DailyElectricityData = {
+      data,
+      meta: {
+        totalRowCount,
+      },
+    };
+    res.json(response);
+  } catch (e) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 };
