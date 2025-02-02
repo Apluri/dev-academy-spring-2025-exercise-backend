@@ -5,7 +5,7 @@ import { DailyElectricityData } from "../models/dataTransferObjects";
 const prisma = new PrismaClient();
 
 const buildWhereClause = (
-  filters: FlatFilter
+  filters: FlatFilter<electricitydata>
 ): Prisma.electricitydataWhereInput => {
   // TODO UTC handling
 
@@ -69,7 +69,7 @@ const buildWhereClause = (
 };
 
 export const getRawData = async (
-  queryParams: QueryParams
+  queryParams: QueryParams<electricitydata>
 ): Promise<{ data: electricitydata[]; totalRowCount: number }> => {
   const whereClause = buildWhereClause(queryParams.filters);
   const [data, totalRowCount] = await Promise.all([
@@ -96,9 +96,10 @@ export async function getTest() {
   return result;
 }
 
-export const getDailyStatistics = async (queryParams: QueryParams) => {
+export const getDailyStatistics = async (
+  queryParams: QueryParams<DailyElectricityData>
+) => {
   const allData = await prisma.electricitydata.findMany();
-  console.log("allData", allData.length);
 
   const dataMap = new Map<
     string,
@@ -150,7 +151,6 @@ export const getDailyStatistics = async (queryParams: QueryParams) => {
     }
   });
 
-  console.log("dataMap", dataMap.size);
   const data: DailyElectricityData[] = Array.from(dataMap.entries()).map(
     ([date, stats]) => ({
       date: new Date(date),
@@ -165,13 +165,10 @@ export const getDailyStatistics = async (queryParams: QueryParams) => {
   data.sort((a, b) => a.date.getTime() - b.date.getTime());
   const totalRowCount = data.length;
 
-  console.log("data", data.length);
-  // TODO likely broken due it does not handle indexes going out of bounds
   const paginatedData = data.slice(
     queryParams.pageStart,
     Math.min(queryParams.pageStart + queryParams.pageSize, totalRowCount)
   );
-  console.log("paginatedData", paginatedData.length);
 
   return { paginatedData, totalRowCount };
 };

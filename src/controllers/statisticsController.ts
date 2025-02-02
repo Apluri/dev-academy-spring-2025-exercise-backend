@@ -11,31 +11,31 @@ import {
   ElectricityDataDTO,
 } from "../models/dataTransferObjects";
 
-export type FlatFilter = {
-  [key in keyof electricitydata]?: (string | null)[];
+export type FlatFilter<T> = {
+  [key in keyof T]?: (string | null)[];
 };
 
-export type Sorting = {
-  id: keyof electricitydata;
+export type Sorting<T> = {
+  id: keyof T;
   desc: boolean;
 };
-export type FlatSorting = {
-  [key in keyof electricitydata]?: "asc" | "desc";
+export type FlatSorting<T> = {
+  [key in keyof T]?: "asc" | "desc";
 };
 
-export type QueryParams = {
+export type QueryParams<T> = {
   pageStart: number;
   pageSize: number;
-  filters: FlatFilter;
-  sorting: FlatSorting[];
+  filters: FlatFilter<T>;
+  sorting: FlatSorting<T>[];
 };
 
 // TODO check if some libraries can be used to parse params automatically
-const handleParseFilters = (filters: string) => {
-  const flatFilters: FlatFilter = {};
+const handleParseFilters = <T>(filters: string) => {
+  const flatFilters: FlatFilter<T> = {};
   if (filters === undefined) return flatFilters;
   JSON.parse(filters).forEach(
-    (filter: { id: keyof electricitydata; value: (string | null)[] }) => {
+    (filter: { id: keyof T; value: (string | null)[] }) => {
       const key = filter.id;
       const value = filter.value;
       flatFilters[key] = value;
@@ -46,17 +46,15 @@ const handleParseFilters = (filters: string) => {
 };
 
 // TODO can this be done in a better way?
-const handleParseSorting = (sorting: string) => {
-  const flatSorting: FlatSorting[] = [];
+const handleParseSorting = <T>(sorting: string) => {
+  const flatSorting: FlatSorting<T>[] = [];
   if (sorting === undefined) return flatSorting;
 
-  JSON.parse(sorting).forEach(
-    (sort: { id: keyof electricitydata; desc: boolean }) => {
-      flatSorting.push({
-        [sort.id]: sort.desc ? "desc" : "asc",
-      });
-    }
-  );
+  JSON.parse(sorting).forEach((sort: { id: keyof T; desc: boolean }) => {
+    flatSorting.push({
+      [sort.id]: sort.desc ? "desc" : "asc",
+    } as FlatSorting<T>);
+  });
   return flatSorting;
 };
 
@@ -69,7 +67,7 @@ export const getRawDataTemp = async (
     const queryParams = {
       pageStart: parseInt(req.query.pageStart as string),
       pageSize: parseInt(req.query.pageSize as string),
-      filters: handleParseFilters(req.query.filters as string),
+      filters: handleParseFilters<electricitydata>(req.query.filters as string),
       sorting: handleParseSorting(req.query.sorting as string),
     };
 
