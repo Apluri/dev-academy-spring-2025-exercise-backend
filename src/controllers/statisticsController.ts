@@ -23,7 +23,6 @@ export type QueryParams = {
   pageStart: number;
   pageSize: number;
   filters: FlatFilter;
-  globalFilter: string;
   sorting: FlatSorting[];
 };
 
@@ -67,7 +66,6 @@ export const getRawDataTemp = async (
       pageStart: parseInt(req.query.pageStart as string),
       pageSize: parseInt(req.query.pageSize as string),
       filters: handleParseFilters(req.query.filters as string),
-      globalFilter: req.query.globalFilter as string,
       sorting: handleParseSorting(req.query.sorting as string),
     };
 

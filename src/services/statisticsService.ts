@@ -1,9 +1,5 @@
 import { electricitydata, Prisma, PrismaClient } from "@prisma/client";
-import {
-  FlatFilter,
-  FlatSorting,
-  QueryParams,
-} from "../controllers/statisticsController";
+import { FlatFilter, QueryParams } from "../controllers/statisticsController";
 
 const prisma = new PrismaClient();
 
@@ -71,63 +67,19 @@ const buildWhereClause = (
   return whereClause;
 };
 
-const buildGlobalFilter = (
-  globalFilter: string
-): Prisma.electricitydataWhereInput => {
-  const globalFilfters: Prisma.electricitydataWhereInput = {
-    ...getNumericGlobalFilter(globalFilter),
-  };
-
-  return globalFilfters;
-};
-
-const getNumericGlobalFilter = (
-  globalFilter: string
-): Prisma.electricitydataWhereInput => {
-  const globalFilterNumber = parseInt(globalFilter);
-  if (isNaN(globalFilterNumber)) {
-    return {};
-  }
-  const whereClauseNumeric: Prisma.electricitydataWhereInput = {
-    OR: [
-      {
-        productionamount: {
-          equals: globalFilterNumber,
-        },
-      },
-      {
-        consumptionamount: {
-          equals: globalFilterNumber,
-        },
-      },
-      {
-        hourlyprice: {
-          equals: globalFilterNumber,
-        },
-      },
-      {
-        id: {
-          equals: globalFilterNumber,
-        },
-      },
-    ],
-  };
-  return whereClauseNumeric;
-};
 export const getRawData = async (
   queryParams: QueryParams
 ): Promise<{ data: electricitydata[]; totalRowCount: number }> => {
   const whereClause = buildWhereClause(queryParams.filters);
-  console.log("global", queryParams.globalFilter);
   const [data, totalRowCount] = await Promise.all([
     prisma.electricitydata.findMany({
       skip: queryParams.pageStart,
       take: queryParams.pageSize,
-      where: { ...whereClause, ...buildGlobalFilter(queryParams.globalFilter) },
+      where: whereClause,
       orderBy: queryParams.sorting,
     }),
     prisma.electricitydata.count({
-      where: { ...whereClause, ...buildGlobalFilter(queryParams.globalFilter) },
+      where: whereClause,
     }),
   ]);
 
