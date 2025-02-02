@@ -292,6 +292,52 @@ export const getStatisticsByDate = async (date: string) => {
   });
 };
 
+const createWhereClause = (filters: FlatFilter<dailyElectricityStatistics>) => {
+  const whereClause: Prisma.dailyElectricityStatisticsWhereInput = {};
+
+  if (filters?.totalConsumption) {
+    const [min, max] = filters.totalConsumption;
+    whereClause.totalConsumption = {
+      gte: min ? parseFloat(min) : undefined,
+      lte: max ? parseFloat(max) : undefined,
+    };
+  }
+
+  if (filters?.totalProduction) {
+    const [min, max] = filters.totalProduction;
+    whereClause.totalProduction = {
+      gte: min ? parseFloat(min) : undefined,
+      lte: max ? parseFloat(max) : undefined,
+    };
+  }
+
+  if (filters?.averagePrice) {
+    const [min, max] = filters.averagePrice;
+    whereClause.averagePrice = {
+      gte: min ? parseFloat(min) : undefined,
+      lte: max ? parseFloat(max) : undefined,
+    };
+  }
+
+  if (filters?.date) {
+    const [min, max] = filters.date;
+    whereClause.date = {
+      gte: min ? new Date(min) : undefined,
+      lte: max ? new Date(max) : undefined,
+    };
+  }
+
+  if (filters?.longestNegativePriceStreak) {
+    const [min, max] = filters.longestNegativePriceStreak;
+    whereClause.longestNegativePriceStreak = {
+      gte: min ? parseInt(min) : undefined,
+      lte: max ? parseInt(max) : undefined,
+    };
+  }
+
+  return whereClause;
+};
+
 export const getDailyStatisticsView = async (
   queryParams: QueryParams<dailyElectricityStatistics>
 ) => {
@@ -300,21 +346,12 @@ export const getDailyStatisticsView = async (
       skip: queryParams.pageStart,
       take: queryParams.pageSize,
       orderBy: queryParams.sorting,
-      where: {
-        averagePrice: queryParams.filters?.averagePrice
-          ? {
-              gte: queryParams.filters.averagePrice[0]
-                ? parseFloat(queryParams.filters.averagePrice[0])
-                : undefined,
-              lte: queryParams.filters.averagePrice[1]
-                ? parseFloat(queryParams.filters.averagePrice[1])
-                : undefined,
-            }
-          : undefined,
-      },
+      where: createWhereClause(queryParams.filters),
     }),
 
-    prisma.dailyElectricityStatistics.count({}),
+    prisma.dailyElectricityStatistics.count({
+      where: createWhereClause(queryParams.filters),
+    }),
   ]);
 
   return { data, totalRowCount };
