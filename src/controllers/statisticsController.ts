@@ -1,10 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import {
-  getDailyStatistics,
-  getRawData,
-  getStatisticsByDate,
-  getTest,
-} from "../services/statisticsService";
+import { getDailyStatistics, getRawData } from "../services/statisticsService";
 import { electricitydata } from "@prisma/client";
 import {
   DailyElectricityData,
@@ -107,19 +102,4 @@ export const handleGetDailyStatistics = async (req: Request, res: Response) => {
   };
 
   res.json(response);
-};
-
-export const getDailyStatisticsByDate = async (req: Request, res: Response) => {
-  // TODO implement this function to get daily statistics but only for a specific date
-  // return object should match getDailyStatistics
-  throw new Error("Not implemented");
-  const { date } = req.params;
-  const stats = await getStatisticsByDate(date);
-  res.json(stats);
-};
-
-// TODO  - remove this route
-export const test = async (req: Request, res: Response) => {
-  const result = await getTest();
-  res.json(result);
 };

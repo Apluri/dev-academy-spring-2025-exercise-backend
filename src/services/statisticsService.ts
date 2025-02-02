@@ -3,6 +3,7 @@ import { FlatFilter, QueryParams } from "../controllers/statisticsController";
 import { DailyElectricityData } from "../models/dataTransferObjects";
 
 const prisma = new PrismaClient();
+const FILTER_ARRAY_LENGTH = 2;
 
 const buildWhereClause = (
   filters: FlatFilter<electricitydata>
@@ -87,15 +88,7 @@ export const getRawData = async (
   return { data, totalRowCount: totalRowCount };
 };
 
-export async function getTest() {
-  const result = await prisma.$queryRaw`
-    SELECT * FROM electricitydata
-    WHERE NOT productionamount < 7554
-  `;
-
-  return result;
-}
-
+// TODO Check that calculations are correct
 export const getDailyStatistics = async (
   queryParams: QueryParams<DailyElectricityData>
 ) => {
@@ -150,19 +143,40 @@ export const getDailyStatistics = async (
     }
   });
 
-  const data: DailyElectricityData[] = Array.from(dataMap.entries()).map(
-    ([date, stats]) => ({
+  const filteredData = Array.from(dataMap.entries())
+    .map(([date, stats]) => ({
       date: new Date(date),
       totalConsumption: stats.totalConsumption,
       totalProduction: stats.totalProduction,
       averagePrice: stats.totalPrice / stats.priceCount,
       longestNegativePriceStreak: stats.longestNegativePriceStreak,
-    })
-  );
+    }))
+    .filter((item) => {
+      return Object.entries(queryParams.filters).every(([key, range]) => {
+        const field = key as keyof DailyElectricityData;
+        if (!range || range.length !== FILTER_ARRAY_LENGTH) return true; // Ignore invalid filters
+
+        const [min, max] = range;
+
+        const value = item[field];
+
+        // Ensure correct type comparison for numbers and dates
+        if (typeof value === "number") {
+          if (min !== null && value < Number(min)) return false;
+          if (max !== null && value > Number(max)) return false;
+        } else if (value instanceof Date) {
+          if (min !== null && value < new Date(min)) return false;
+          if (max !== null && value > new Date(max)) return false;
+        }
+        // Add string and other comparison here if needed
+
+        return true; // Include item if it passes all filters
+      });
+    });
 
   // Use the sorting parameter to sort the data
   if (queryParams.sorting.length > 0) {
-    data.sort((a, b) => {
+    filteredData.sort((a, b) => {
       for (const sortObj of queryParams.sorting) {
         const sortField = Object.keys(sortObj)[0] as keyof DailyElectricityData;
         const order = sortObj[sortField];
@@ -177,9 +191,9 @@ export const getDailyStatistics = async (
     });
   }
 
-  const totalRowCount = data.length;
+  const totalRowCount = filteredData.length;
 
-  const paginatedData = data.slice(
+  const paginatedData = filteredData.slice(
     queryParams.pageStart,
     Math.min(queryParams.pageStart + queryParams.pageSize, totalRowCount)
   );
