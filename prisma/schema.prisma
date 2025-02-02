@@ -15,3 +15,14 @@ model electricitydata {
   consumptionamount Decimal?  @db.Decimal(11, 3)
   hourlyprice       Decimal?  @db.Decimal(6, 3)
 }
+
+model dailyElectricityStatistics {
+  date                  DateTime @id // is null but does it matter? would it create rows without id?
+  totalProduction       Decimal?
+  totalConsumption      Decimal?
+  averagePrice          Decimal?
+  longestNegativePriceStreak BigInt?
+  @@unique([date]) // Ensures Prisma recognizes it correctly
+  @@map("dailyElectricityStatistics") // Matches the DB view name exactly
+
+}

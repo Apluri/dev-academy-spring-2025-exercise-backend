@@ -1,4 +1,9 @@
-import { electricitydata, Prisma, PrismaClient } from "@prisma/client";
+import {
+  dailyElectricityStatistics,
+  electricitydata,
+  Prisma,
+  PrismaClient,
+} from "@prisma/client";
 import { FlatFilter, QueryParams } from "../controllers/statisticsController";
 import { DailyElectricityData } from "../models/dataTransferObjects";
 
@@ -208,7 +213,10 @@ export const getDailyStatistics2 = async (
 export const getDailyStatisticsTemp = async (
   queryParams: QueryParams<DailyElectricityData>
 ) => {
-  console.log("pagi", queryParams.pageSize, queryParams.pageStart);
+  console.log("min", Number.MIN_SAFE_INTEGER);
+  console.log("max", Number.MAX_SAFE_INTEGER);
+  console.log("filters", queryParams.filters);
+  const filters = queryParams.filters;
   const results = await prisma.$transaction([
     prisma.electricitydata.groupBy({
       by: ["date"], // Group by date
@@ -282,4 +290,32 @@ export const getStatisticsByDate = async (date: string) => {
   return await prisma.electricitydata.findMany({
     where: { date },
   });
+};
+
+export const getDailyStatisticsView = async (
+  queryParams: QueryParams<dailyElectricityStatistics>
+) => {
+  const [data, totalRowCount] = await Promise.all([
+    await prisma.dailyElectricityStatistics.findMany({
+      skip: queryParams.pageStart,
+      take: queryParams.pageSize,
+      orderBy: queryParams.sorting,
+      where: {
+        averagePrice: queryParams.filters?.averagePrice
+          ? {
+              gte: queryParams.filters.averagePrice[0]
+                ? parseFloat(queryParams.filters.averagePrice[0])
+                : undefined,
+              lte: queryParams.filters.averagePrice[1]
+                ? parseFloat(queryParams.filters.averagePrice[1])
+                : undefined,
+            }
+          : undefined,
+      },
+    }),
+
+    prisma.dailyElectricityStatistics.count({}),
+  ]);
+
+  return { data, totalRowCount };
 };

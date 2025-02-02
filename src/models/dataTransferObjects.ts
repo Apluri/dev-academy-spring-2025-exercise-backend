@@ -1,4 +1,4 @@
-import { electricitydata } from "@prisma/client";
+import { dailyElectricityStatistics, electricitydata } from "@prisma/client";
 import { MetaData } from "./metaData";
 
 export type ElectricityDataDTO = {
@@ -7,7 +7,7 @@ export type ElectricityDataDTO = {
 };
 
 export type DailyElectricityDataDTO = {
-  data: DailyElectricityData[];
+  data: dailyElectricityStatistics[];
   meta: MetaData;
 };
 
