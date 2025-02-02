@@ -1,5 +1,6 @@
 import { electricitydata, Prisma, PrismaClient } from "@prisma/client";
 import { FlatFilter, QueryParams } from "../controllers/statisticsController";
+import { DailyElectricityData } from "../models/dataTransferObjects";
 
 const prisma = new PrismaClient();
 
@@ -95,17 +96,84 @@ export async function getTest() {
   return result;
 }
 
-export const getDailyStatistics = async () => {
-  // get data
-  // do calucations
-  // Total electricity consumption per day
-  // Total electricity production per day
-  // Average electricity price per day
-  // Longest consecutive time in hours, when electricity price has been negative, per day
-  // return data
+export const getDailyStatistics = async (queryParams: QueryParams) => {
+  const allData = await prisma.electricitydata.findMany();
+  console.log("allData", allData.length);
 
-  // data should be in format that there is a way that dates are unique, and then we have the values for that date.
-  return await prisma.electricitydata.findMany();
+  const dataMap = new Map<
+    string,
+    {
+      totalConsumption: number;
+      totalProduction: number;
+      totalPrice: number;
+      priceCount: number;
+      longestNegativePriceStreak: number;
+      currentNegativePriceStreak: number;
+    }
+  >();
+
+  allData.forEach((record) => {
+    const date = record.date;
+    if (!date) return;
+    const dateStr = date.toISOString().split("T")[0]; // we only need the date part for the key
+    // init only if the date is not in the map
+    if (!dataMap.has(dateStr)) {
+      dataMap.set(dateStr, {
+        totalConsumption: 0,
+        totalProduction: 0,
+        totalPrice: 0,
+        priceCount: 0,
+        longestNegativePriceStreak: 0,
+        currentNegativePriceStreak: 0,
+      });
+    }
+
+    const dailyData = dataMap.get(dateStr)!;
+
+    dailyData.totalConsumption += Number(record.consumptionamount);
+    dailyData.totalProduction += Number(record.productionamount);
+    dailyData.totalPrice += Number(record.hourlyprice);
+    dailyData.priceCount++; // we need to count the number of prices to calculate the average
+
+    // Calculate longest negative price streak
+    if (Number(record.hourlyprice) < 0) {
+      dailyData.currentNegativePriceStreak += 1;
+      if (
+        dailyData.currentNegativePriceStreak >
+        dailyData.longestNegativePriceStreak
+      ) {
+        dailyData.longestNegativePriceStreak =
+          dailyData.currentNegativePriceStreak;
+      }
+    } else {
+      dailyData.currentNegativePriceStreak = 0;
+    }
+  });
+
+  console.log("dataMap", dataMap.size);
+  const data: DailyElectricityData[] = Array.from(dataMap.entries()).map(
+    ([date, stats]) => ({
+      date: new Date(date),
+      totalConsumption: stats.totalConsumption,
+      totalProduction: stats.totalProduction,
+      averagePrice: stats.totalPrice / stats.priceCount,
+      longestNegativePriceStreak: stats.longestNegativePriceStreak,
+    })
+  );
+
+  // TODO use the sorting parameter to sort the data
+  data.sort((a, b) => a.date.getTime() - b.date.getTime());
+  const totalRowCount = data.length;
+
+  console.log("data", data.length);
+  // TODO likely broken due it does not handle indexes going out of bounds
+  const paginatedData = data.slice(
+    queryParams.pageStart,
+    Math.min(queryParams.pageStart + queryParams.pageSize, totalRowCount)
+  );
+  console.log("paginatedData", paginatedData.length);
+
+  return { paginatedData, totalRowCount };
 };
 
 export const getStatisticsByDate = async (date: string) => {

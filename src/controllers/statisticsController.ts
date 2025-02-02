@@ -1,11 +1,15 @@
 import { NextFunction, Request, Response } from "express";
 import {
+  getDailyStatistics,
   getRawData,
   getStatisticsByDate,
   getTest,
 } from "../services/statisticsService";
 import { electricitydata } from "@prisma/client";
-import { ElectricityDataDTO } from "../models/dataTransferObjects";
+import {
+  DailyElectricityDataDTO,
+  ElectricityDataDTO,
+} from "../models/dataTransferObjects";
 
 export type FlatFilter = {
   [key in keyof electricitydata]?: (string | null)[];
@@ -82,9 +86,24 @@ export const getRawDataTemp = async (
   }
 };
 
-export const getDailyStatistics = async (req: Request, res: Response) => {
-  const stats = await getTest();
-  res.json(stats);
+export const handleGetDailyStatistics = async (req: Request, res: Response) => {
+  const queryParams = {
+    pageStart: parseInt(req.query.pageStart as string),
+    pageSize: parseInt(req.query.pageSize as string),
+    filters: handleParseFilters(req.query.filters as string),
+    sorting: handleParseSorting(req.query.sorting as string),
+  };
+  const { paginatedData: data, totalRowCount } = await getDailyStatistics(
+    queryParams
+  );
+  const response: DailyElectricityDataDTO = {
+    data,
+    meta: {
+      totalRowCount,
+    },
+  };
+
+  res.json(response);
 };
 
 export const getDailyStatisticsByDate = async (req: Request, res: Response) => {
