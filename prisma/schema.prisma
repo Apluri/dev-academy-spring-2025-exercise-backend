@@ -24,5 +24,4 @@ model dailyElectricityStatistics {
   longestNegativePriceStreak BigInt?
   @@unique([date]) // Ensures Prisma recognizes it correctly
   @@map("dailyElectricityStatistics") // Matches the DB view name exactly
-
 }

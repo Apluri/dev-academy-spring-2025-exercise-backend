@@ -4,13 +4,15 @@ import {
   Prisma,
   PrismaClient,
 } from "@prisma/client";
-import { FlatFilter, QueryParams } from "../controllers/statisticsController";
+import { QueryFilter, QueryParams } from "../types/dataQueries";
 
+const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGE_START = 0;
 export const prisma = new PrismaClient();
 
 // TODO remove
 const buildWhereClause = (
-  filters: FlatFilter<electricitydata>
+  filters?: QueryFilter<electricitydata>
 ): Prisma.electricitydataWhereInput => {
   // TODO UTC handling
 
@@ -93,7 +95,9 @@ export const getRawData = async (
   return { data, totalRowCount: totalRowCount };
 };
 
-const createWhereClause = (filters: FlatFilter<dailyElectricityStatistics>) => {
+const createWhereClause = (
+  filters?: QueryFilter<dailyElectricityStatistics>
+) => {
   const whereClause: Prisma.dailyElectricityStatisticsWhereInput = {};
 
   if (filters?.totalConsumption) {
@@ -142,10 +146,11 @@ const createWhereClause = (filters: FlatFilter<dailyElectricityStatistics>) => {
 export const getDailyStatisticsView = async (
   queryParams: QueryParams<dailyElectricityStatistics>
 ) => {
+  console.log(queryParams.pageSize, queryParams.pageStart);
   const [data, totalRowCount] = await Promise.all([
     await prisma.dailyElectricityStatistics.findMany({
-      skip: queryParams.pageStart,
-      take: queryParams.pageSize,
+      skip: queryParams.pageStart || DEFAULT_PAGE_START,
+      take: queryParams.pageSize || DEFAULT_PAGE_SIZE,
       orderBy: queryParams.sorting,
       where: createWhereClause(queryParams.filters),
     }),
