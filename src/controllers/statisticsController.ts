@@ -1,8 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import {
-  getDailyStatistics2,
-  getDailyStatisticsTemp,
-  getDailyStatisticsView,
+  getDailyStatisticsView as getDailyStatistics,
   getRawData,
 } from "../services/statisticsService";
 import { electricitydata } from "@prisma/client";
@@ -84,7 +82,7 @@ export const getRawDataTemp = async (
     next(e);
   }
 };
-/*
+
 export const handleGetDailyStatistics = async (req: Request, res: Response) => {
   const queryParams = {
     pageStart: parseInt(req.query.pageStart as string),
@@ -96,61 +94,7 @@ export const handleGetDailyStatistics = async (req: Request, res: Response) => {
       req.query.sorting as string
     ),
   };
-  const { paginatedData: data, totalRowCount } = await getDailyStatistics2(
-    queryParams
-  );
-  const response: DailyElectricityDataDTO = {
-    data,
-    meta: {
-      totalRowCount,
-    },
-  };
-
-  res.json(response);
-};
-*/
-
-/*
-export const handleGetDailyStatisticsNew = async (
-  req: Request,
-  res: Response
-) => {
-  const queryParams = {
-    pageStart: parseInt(req.query.pageStart as string),
-    pageSize: parseInt(req.query.pageSize as string),
-    filters: handleParseFilters<DailyElectricityData>(
-      req.query.filters as string
-    ),
-    sorting: handleParseSorting<DailyElectricityData>(
-      req.query.sorting as string
-    ),
-  };
-  const result = await getDailyStatisticsTemp(queryParams);
-  const response: DailyElectricityDataDTO = {
-    data: result.result,
-    meta: {
-      totalRowCount: result.totalRowCount,
-    },
-  };
-
-  res.json(response);
-};
-*/
-export const handleGetDailyStatisticsView = async (
-  req: Request,
-  res: Response
-) => {
-  const queryParams = {
-    pageStart: parseInt(req.query.pageStart as string),
-    pageSize: parseInt(req.query.pageSize as string),
-    filters: handleParseFilters<DailyElectricityData>(
-      req.query.filters as string
-    ),
-    sorting: handleParseSorting<DailyElectricityData>(
-      req.query.sorting as string
-    ),
-  };
-  const { data, totalRowCount } = await getDailyStatisticsView(queryParams);
+  const { data, totalRowCount } = await getDailyStatistics(queryParams);
   const response: DailyElectricityDataDTO = {
     data,
     meta: {
