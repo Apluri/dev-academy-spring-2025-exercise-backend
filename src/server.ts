@@ -1,8 +1,7 @@
 import express from "express";
 import statisticsRoute from "./routes/statisticsRoute";
 import "./utils/prototypeUtils";
-import { internalServerErrorHandler } from "./middlewares/errorHandler";
-const cors = require("cors");
+import cors from "cors";
 
 const app = express();
 
@@ -13,7 +12,6 @@ app.use(
   })
 );
 app.use("/api/statistics", statisticsRoute);
-app.use(internalServerErrorHandler);
 
 const PORT = process.env.PORT || 3000;
 

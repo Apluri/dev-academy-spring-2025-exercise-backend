@@ -84,6 +84,7 @@ export const handleGetDailyStatistics = async (req: Request, res: Response) => {
     };
     res.json(response);
   } catch (e) {
+    console.error(e);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
