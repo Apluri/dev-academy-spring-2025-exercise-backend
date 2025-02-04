@@ -1,13 +1,7 @@
-import { NextFunction, Request, Response } from "express";
-import {
-  getDailyStatisticsView as getDailyStatistics,
-  getRawData,
-} from "../services/statisticsService";
-import { dailyElectricityStatistics, electricitydata } from "@prisma/client";
-import {
-  DailyElectricityData,
-  ElectricityData,
-} from "../types/electricityData";
+import { Request, Response } from "express";
+import { getDailyStatisticsView as getDailyStatistics } from "../services/statisticsService";
+import { dailyElectricityStatistics } from "@prisma/client";
+import { DailyElectricityData } from "../types/electricityData";
 import { QueryFilter, SortCriteria } from "../types/dataQueries";
 
 const parseFilters = <T>(filters: string) => {
@@ -36,32 +30,6 @@ const parseSorting = <T>(sorting: string) => {
   return sortCriterias;
 };
 
-export const getRawDataTemp = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const queryParams = {
-      pageStart: parseInt(req.query.pageStart as string),
-      pageSize: parseInt(req.query.pageSize as string),
-      filters: parseFilters<electricitydata>(req.query.filters as string),
-      sorting: parseSorting<electricitydata>(req.query.sorting as string),
-    };
-
-    const { data, totalRowCount } = await getRawData(queryParams);
-    const response: ElectricityData = {
-      data: data,
-      meta: {
-        totalRowCount,
-      },
-    };
-    res.json(response);
-  } catch (e) {
-    next(e);
-  }
-};
-
 const parsedQueryParams = <T>(req: Request) => {
   const { pageSize, pageStart, filters, sorting } = req.query;
   return {
@@ -74,6 +42,7 @@ const parsedQueryParams = <T>(req: Request) => {
 
 export const handleGetDailyStatistics = async (req: Request, res: Response) => {
   try {
+    // Todo validate params and provide proper error response for invalid params
     const queryParams = parsedQueryParams<dailyElectricityStatistics>(req);
     const { data, totalRowCount } = await getDailyStatistics(queryParams);
     const response: DailyElectricityData = {
@@ -82,7 +51,7 @@ export const handleGetDailyStatistics = async (req: Request, res: Response) => {
         totalRowCount,
       },
     };
-    res.json(response);
+    res.status(200).json(response);
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Internal Server Error" });
