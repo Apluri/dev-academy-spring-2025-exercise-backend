@@ -60,7 +60,6 @@ const createWhereClause = (
 export const getDailyStatisticsView = async (
   queryParams: QueryParams<dailyElectricityStatistics>
 ) => {
-  console.log(queryParams.pageSize, queryParams.pageStart);
   const [data, totalRowCount] = await Promise.all([
     await prisma.dailyElectricityStatistics.findMany({
       skip: queryParams.pageStart || DEFAULT_PAGE_START,
